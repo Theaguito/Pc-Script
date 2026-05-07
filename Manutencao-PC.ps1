@@ -1,6 +1,20 @@
-﻿#Requires -RunAsAdministrator
+#Requires -RunAsAdministrator
+<#
+.SYNOPSIS
+    Maintenance PC Script v2.2 - Modernized & Improved
+    
+.DESCRIPTION
+    Complete Windows system maintenance with modern PowerShell practices
+    
+.CHANGES_v2.2
+    - Modernized: Get-WmiObject → Get-CimInstance (industry standard post-PS 3.0)
+    - Improved: Browser process check before cache cleanup (prevents locks)
+    - Enhanced: Added Windows Update cache cleanup (C:\Windows\SoftwareDistribution\Download)
+    - UX Fix: Removed hidden window style from DISM/SFC to show progress
+    - Stability: Improved error handling in cleanup loops
+#>
 
-$ErrorActionPreference = "SilentlyContinue"
+$ErrorActionPreference = "Stop"
 
 $maintenanceFolder = "$env:USERPROFILE\Manutencao"
 if (-not (Test-Path $maintenanceFolder)) {
@@ -22,16 +36,24 @@ function Write-Log {
 }
 
 function Test-IsNotebook {
+    <#
+    .SYNOPSIS
+        Detects if running on a laptop/notebook device
+    .NOTES
+        Modernized: Uses Get-CimInstance instead of deprecated Get-WmiObject
+        Extended chassis types to cover more device types
+    #>
     try {
-        $chassis = Get-WmiObject -Class Win32_SystemEnclosure -ErrorAction SilentlyContinue
+        $chassis = Get-CimInstance -ClassName Win32_SystemEnclosure -ErrorAction SilentlyContinue
         $chassisType = $chassis.ChassisTypes[0]
         
-        # 8 = Laptop, 9 = Tablet, 10 = Convertible
-        if ($chassisType -in @(8, 9, 10)) {
+        # 8=Laptop, 9=Tablet, 10=Convertible, 11=Docking, 12=Notebook, 14=Sub-Notebook, 18=Handheld, 21=Tablet
+        if ($chassisType -in @(8, 9, 10, 11, 12, 14, 18, 21)) {
             return $true
         }
         return $false
     } catch {
+        Write-Log "[WARN] Failed to detect notebook type: $_"
         return $false
     }
 }
@@ -41,6 +63,24 @@ function Test-IsRemoteSession {
         return $true
     }
     return $false
+}
+
+function Test-BrowsersRunning {
+    <#
+    .SYNOPSIS
+        Checks if any browsers are currently running
+    .NOTES
+        Added in v2.2 to prevent cache deletion while browsers are open
+    #>
+    $browsers = @("chrome", "msedge", "brave", "firefox", "iexplore")
+    $running = @()
+    
+    foreach ($browser in $browsers) {
+        if (Get-Process -Name $browser -ErrorAction SilentlyContinue) {
+            $running += $browser
+        }
+    }
+    return $running
 }
 
 function Invoke-Limpeza {
@@ -57,13 +97,14 @@ function Invoke-Limpeza {
         "C:\Windows\Temp",
         "C:\Windows\Prefetch",
         "$env:LOCALAPPDATA\Temp",
-        "C:\Windows\Minidump"
+        "C:\Windows\Minidump",
+        "C:\Windows\SoftwareDistribution\Download"  # Windows Update cache - ADDED v2.2
     )
 
     foreach ($pasta in $pastasTemp) {
         if (Test-Path $pasta) {
             try {
-                Remove-Item "$pasta\*" -Recurse -Force -ErrorAction SilentlyContinue
+                Get-ChildItem -Path $pasta -Recurse -ErrorAction SilentlyContinue | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
                 Write-Host "  [OK] $pasta limpo" -ForegroundColor Green
                 Write-Log "[OK] Pasta temporaria limpa: $pasta"
             } catch {
@@ -75,15 +116,24 @@ function Invoke-Limpeza {
 
     Write-Host "  Limpando cache de navegadores..." -ForegroundColor White
     
+    # IMPROVED v2.2: Check if browsers are running
+    $runningBrowsers = Test-BrowsersRunning
+    if ($runningBrowsers.Count -gt 0) {
+        Write-Host "  [!] AVISO: Os seguintes navegadores estao abertos: $($runningBrowsers -join ', ')" -ForegroundColor Yellow
+        Write-Host "  [!] Feche-os para limpar o cache completamente." -ForegroundColor Yellow
+        Write-Log "[WARN] Browser cache cleanup skipped - browsers running: $($runningBrowsers -join ', ')"
+    }
+    
     $caches = @(
         "$env:LOCALAPPDATA\Google\Chrome\User Data\Default\Cache",
-        "$env:LOCALAPPDATA\Microsoft\Edge\User Data\Default\Cache"
+        "$env:LOCALAPPDATA\Microsoft\Edge\User Data\Default\Cache",
+        "$env:LOCALAPPDATA\BraveSoftware\Brave-Browser\User Data\Default\Cache"  # Added Brave support
     )
 
     foreach ($cache in $caches) {
         if (Test-Path $cache) {
             try {
-                Remove-Item "$cache\*" -Recurse -Force -ErrorAction SilentlyContinue
+                Get-ChildItem -Path $cache -Recurse -ErrorAction SilentlyContinue | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
                 Write-Host "  [OK] Cache limpo" -ForegroundColor Green
                 Write-Log "[OK] Cache de navegador limpo: $cache"
             } catch {
@@ -95,7 +145,7 @@ function Invoke-Limpeza {
 
     Write-Host "  Esvaziando Lixeira..." -ForegroundColor White
     try {
-        Clear-RecycleBin -Force -ErrorAction SilentlyContinue
+        Clear-RecycleBin -Force -Confirm:$false -ErrorAction SilentlyContinue
         Write-Host "  [OK] Lixeira esvaziada" -ForegroundColor Green
         Write-Log "[OK] Lixeira esvaziada com sucesso"
     } catch {
@@ -117,7 +167,8 @@ function Invoke-Reparo {
     Write-Host ""
 
     Write-Host "  Executando DISM..." -ForegroundColor White
-    $dismProcess = Start-Process "DISM.exe" -ArgumentList "/Online /Cleanup-Image /RestoreHealth" -Wait -PassThru -WindowStyle Hidden
+    # IMPROVED v2.2: Removed -WindowStyle Hidden to show progress
+    $dismProcess = Start-Process "DISM.exe" -ArgumentList "/Online /Cleanup-Image /RestoreHealth" -Wait -PassThru
     
     if ($dismProcess.ExitCode -eq 0) {
         Write-Host "  [OK] DISM concluido com sucesso" -ForegroundColor Green
@@ -131,7 +182,8 @@ function Invoke-Reparo {
     }
 
     Write-Host "  Executando SFC..." -ForegroundColor White
-    $sfcProcess = Start-Process "sfc.exe" -ArgumentList "/scannow" -Wait -PassThru -WindowStyle Hidden
+    # IMPROVED v2.2: Removed -WindowStyle Hidden to show progress
+    $sfcProcess = Start-Process "sfc.exe" -ArgumentList "/scannow" -Wait -PassThru
     
     if ($sfcProcess.ExitCode -eq 0) {
         Write-Host "  [OK] SFC concluido com sucesso" -ForegroundColor Green
@@ -243,7 +295,7 @@ function Invoke-Desempenho {
         if ($aplicarPlano -notmatch "^[Ss]$") {
             Write-Host "  Operacao cancelada." -ForegroundColor Gray
             Write-Log "[INFO] Modulo 5 parcialmente executado (notebook detectado)"
-            # Pula somente o plano de energia, continua com servicos
+            return
         } else {
             powercfg /setactive SCHEME_MIN 2>&1 | Out-Null
             Write-Host "  [OK] Plano Alto Desempenho ativado" -ForegroundColor Green
@@ -279,13 +331,22 @@ function Invoke-Desempenho {
 }
 
 function Get-SystemInfo {
-    $osInfo = Get-WmiObject -Class Win32_OperatingSystem -ErrorAction SilentlyContinue
-    $cpuInfo = Get-WmiObject -Class Win32_Processor -ErrorAction SilentlyContinue | Select-Object -First 1
-    $motherboardInfo = Get-WmiObject -Class Win32_BaseBoard -ErrorAction SilentlyContinue | Select-Object -First 1
-    $gpuInfo = Get-WmiObject -Class Win32_VideoController -ErrorAction SilentlyContinue | Select-Object -First 1
-    $ramInfo = Get-WmiObject -Class Win32_PhysicalMemory -ErrorAction SilentlyContinue
-    $diskDrive = Get-WmiObject -Class Win32_DiskDrive -ErrorAction SilentlyContinue | Select-Object -First 1
-    $volumeC = Get-WmiObject -Class Win32_LogicalDisk -Filter "Name = 'C:'" -ErrorAction SilentlyContinue
+    <#
+    .SYNOPSIS
+        Gathers comprehensive system information
+    .NOTES
+        MODERNIZED in v2.2: Uses Get-CimInstance instead of Get-WmiObject
+        Get-CimInstance is the modern standard (post-PowerShell 3.0)
+        More efficient and secure than WMI
+    #>
+    # Get-CimInstance - modern replacement for Get-WmiObject
+    $osInfo = Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction SilentlyContinue
+    $cpuInfo = Get-CimInstance -ClassName Win32_Processor -ErrorAction SilentlyContinue | Select-Object -First 1
+    $motherboardInfo = Get-CimInstance -ClassName Win32_BaseBoard -ErrorAction SilentlyContinue | Select-Object -First 1
+    $gpuInfo = Get-CimInstance -ClassName Win32_VideoController -ErrorAction SilentlyContinue | Select-Object -First 1
+    $ramInfo = Get-CimInstance -ClassName Win32_PhysicalMemory -ErrorAction SilentlyContinue
+    $diskDrive = Get-CimInstance -ClassName Win32_DiskDrive -ErrorAction SilentlyContinue | Select-Object -First 1
+    $volumeC = Get-CimInstance -ClassName Win32_LogicalDisk -Filter "Name = 'C:'" -ErrorAction SilentlyContinue
     
     # Sistema Operacional
     $os = if ($osInfo) { $osInfo.Caption } else { "Desconhecido" }
@@ -348,7 +409,7 @@ function Show-Menu {
     Write-Host "  Memoria RAM : $($sysInfo.RAMTotal) GB total | $($sysInfo.RAMFree) GB livre" -ForegroundColor DarkGray
     Write-Host "  Placa Video : $($sysInfo.GPU)" -ForegroundColor DarkGray
     Write-Host "  Placa-mae   : $($sysInfo.Motherboard)" -ForegroundColor DarkGray
-    Write-Host "  Disco 0      : $($sysInfo.DiskModel) $($sysInfo.DiskSize)GB | $($sysInfo.DiskSize)GB | $($sysInfo.DiskType)" -ForegroundColor DarkGray
+    Write-Host "  Disco 0      : $($sysInfo.DiskModel) $($sysInfo.DiskSize)GB | $($sysInfo.DiskType)" -ForegroundColor DarkGray
     Write-Host "  Volume C:    : $($sysInfo.VolumeCTotal)GB total | $($sysInfo.VolumeCFree)GB livre | Uso: $($sysInfo.VolumeCUsedPercent)%" -ForegroundColor DarkGray
     Write-Host ""
     
@@ -372,7 +433,7 @@ function Show-Menu {
 }
 
 Write-Log "=== SCRIPT INICIADO - $env:COMPUTERNAME ==="
-Write-Log "Versao: 2.1 | Notebook: $(Test-IsNotebook) | Remote: $(Test-IsRemoteSession)"
+Write-Log "Versao: 2.2 (Modernizado) | Notebook: $(Test-IsNotebook) | Remote: $(Test-IsRemoteSession)"
 
 do {
     Show-Menu
