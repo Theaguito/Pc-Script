@@ -2,7 +2,7 @@
 
 $ErrorActionPreference = "SilentlyContinue"
 
-$maintenanceFolder = "$env:USERPROFILE\Manutencao"
+$maintenanceFolder = $PSScriptRoot
 if (-not (Test-Path $maintenanceFolder)) {
     New-Item -ItemType Directory -Path $maintenanceFolder -Force | Out-Null
 }

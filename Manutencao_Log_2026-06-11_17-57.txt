@@ -1,0 +1,2 @@
+﻿2026-06-11 17:57:47 | === SCRIPT INICIADO - USER ===
+2026-06-11 17:57:47 | Versao: 2.1 | Notebook: True | Remote: False
