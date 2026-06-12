@@ -364,6 +364,7 @@ function Show-Menu {
     Write-Host ""
     Write-Host "  [6]  EXECUTAR TUDO + REINICIAR AUTOMATICAMENTE" -ForegroundColor Yellow
     Write-Host "  [7]  EXECUTAR TUDO + PERGUNTAR ANTES DE REINICIAR" -ForegroundColor Cyan
+    Write-Host "  [8]  EXECUTAR TUDO + DESLIGAR O COMPUTADOR" -ForegroundColor Magenta
     Write-Host ""
     Write-Host "  [0]  Sair" -ForegroundColor Red
     Write-Host ""
@@ -414,6 +415,20 @@ do {
                 Write-Host "  Sistema nao sera reiniciado." -ForegroundColor Gray
                 Write-Log "[INFO] Usuario optou por nao reiniciar"
             }
+        }
+        "8" {
+            Write-Log "=== EXECUTANDO TUDO - DESLIGAMENTO ==="
+            Invoke-Limpeza
+            Invoke-Reparo
+            Invoke-Rede
+            Invoke-Seguranca
+            Invoke-Desempenho
+            Write-Host ""
+            Write-Host "  Manutencao concluida! Desligando em 10 segundos..." -ForegroundColor Magenta
+            Write-Host "  Pressione CTRL+C para cancelar." -ForegroundColor Gray
+            Start-Sleep -Seconds 10
+            Write-Log "=== DESLIGANDO SISTEMA ==="
+            shutdown /s /t 0 /c "Manutencao concluida"
         }
         "0" {
             Write-Host "  Saindo..." -ForegroundColor Gray

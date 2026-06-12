@@ -1,51 +1,42 @@
-# v2.1.0 — Bugfix & Melhorias
+# v2.2.0 — Melhorias de usabilidade e organizacao
 
-Oi! Arrumei alguns problemas no script anterior. Essa versao avisa quando tem algo perigoso acontecendo.
+Ola! Essa versao traz algumas melhorias que surgiram do uso real do script no dia a dia.
 
-## O que foi consertado
+## O que mudou
 
-**Problema**: quando DISM ou SFC falhavam, o script escrevia `[OK]` mesmo assim. Enganava.
+**Opcao [8] — Executar tudo e desligar**
+Adicionei a opcao [8] no menu que executa todos os modulos e desliga o computador ao final. Util para deixar rodando a manutencao e ir embora sem precisar esperar. O desligamento tem 10 segundos de espera com aviso na tela, dando tempo de cancelar com CTRL+C caso precise.
 
-**Solucao**: agora verifica o exit code e mostra `[ERRO]` ou `[AVISO]` quando necessario.
+**Logs salvos na pasta do script**
+Os logs agora sao salvos na mesma pasta onde o script esta localizado, usando $PSScriptRoot. Antes ficavam em uma pasta fixa no perfil do usuario, o que dificultava encontrar depois.
 
-## Novidades
+**Gitignore adicionado**
+Adicionado .gitignore no repositorio para evitar que arquivos de log subam por acidente para o GitHub.
 
-- ✅ **Rotacao de logs** — Mantém apenas os ultimos 10 arquivos de log. Antes acumulava.
-- ✅ **Deteccao de notebook** — Se e laptop, avisa que Alto Desempenho drena bateria. Pode cancelar.
-- ✅ **Aviso de RDP** — Se conectado remotamente, avisa que `ipconfig /release` vai desconectar voce.
-- ✅ **Logs detalhados** — Registra nao so sucesso, mas tambem erros e avisos com contexto.
-
-## Como usar (igual antes)
-
-1. Coloque os dois arquivos na mesma pasta
-2. Execute `INICIAR-MANUTENCAO.bat` como admin
-3. Escolha o numero do modulo desejado
-4. Logs em `C:\Users\{usuario}\Manutencao\`
-
-## Modulos
+## Modulos disponiveis
 
 | ID | Modulo |
 |----|--------|
-| 1 | Limpeza de temporarios |
-| 2 | Reparo do sistema (DISM + SFC + CHKDSK) |
-| 3 | Otimizacao de rede |
-| 4 | Seguranca (Defender) |
-| 5 | Desempenho |
-| 6 | Tudo + reinicia automaticamente |
-| 7 | Tudo + pergunta antes de reiniciar |
+| 1  | Limpeza de temporarios |
+| 2  | Reparo do sistema (DISM + SFC + CHKDSK) |
+| 3  | Otimizacao de rede |
+| 4  | Seguranca (Defender) |
+| 5  | Desempenho |
+| 6  | Tudo + reinicia automaticamente |
+| 7  | Tudo + pergunta antes de reiniciar |
+| 8  | Tudo + desliga o computador |
 
-## Conhecidos & TODO
+## Como usar
 
-**Nao fiz ainda:**
-- [ ] Firefox cache na limpeza
-- [ ] Parametro `-Silent` para automacao
+Nada mudou na forma de usar. Coloque os dois arquivos na mesma pasta e execute INICIAR-MANUTENCAO.bat como administrador.
+
+Logs ficam na mesma pasta do script com o nome: Manutencao_Log_YYYY-MM-DD_HH-mm.txt
+
+## Ainda na lista
+
+- [ ] Firefox cache na limpeza de browsers
+- [ ] Parametro -Silent para automacao via agendador
 - [ ] Mais navegadores (Opera, Brave)
-- [ ] Relatorio visual dos logs
-
-**Avisos:**
-- Use por conta e risco
-- Sempre tenha backup antes
-- Se estiver em RDP, nao use o modulo 3
 
 ---
 

@@ -1,0 +1,13 @@
+﻿2026-06-12 17:33:02 | === SCRIPT INICIADO - USER ===
+2026-06-12 17:33:02 | Versao: 2.1 | Notebook: True | Remote: False
+2026-06-12 17:33:48 | === SCRIPT INICIADO - USER ===
+2026-06-12 17:33:48 | Versao: 2.1 | Notebook: True | Remote: False
+2026-06-12 17:34:08 | [OK] Pasta temporaria limpa: C:\Users\LIGAMI~1\AppData\Local\Temp
+2026-06-12 17:34:09 | [OK] Pasta temporaria limpa: C:\Windows\Temp
+2026-06-12 17:34:10 | [OK] Pasta temporaria limpa: C:\Windows\Prefetch
+2026-06-12 17:34:10 | [OK] Pasta temporaria limpa: C:\Users\Ligamidia - Thiago\AppData\Local\Temp
+2026-06-12 17:34:10 | [OK] Pasta temporaria limpa: C:\Windows\Minidump
+2026-06-12 17:34:10 | [OK] Cache de navegador limpo: C:\Users\Ligamidia - Thiago\AppData\Local\Google\Chrome\User Data\Default\Cache
+2026-06-12 17:34:10 | [OK] Cache de navegador limpo: C:\Users\Ligamidia - Thiago\AppData\Local\Microsoft\Edge\User Data\Default\Cache
+2026-06-12 17:34:10 | [OK] Lixeira esvaziada com sucesso
+2026-06-12 17:34:10 | [SUCESSO] Modulo 1 (Limpeza): concluido
